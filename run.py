@@ -19,6 +19,8 @@ NC = '\033[0m'
 def check_service(port, name):
     try:
         subprocess.run(['redis-cli', '-p', str(port), 'ping'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        
+        
     except subprocess.CalledProcessError:
         print(f"{BLUE}Error: {name} on port {port} is not responding{NC}")
         exit(1)
@@ -151,9 +153,9 @@ def collect_plot_data():
 if __name__ == "__main__":
     print(f"{BLUE}Starting benchmark suite...{NC}")
     print(f"{GREEN}Testing Redis...{NC}")
-    run_service_benchmarks("redis", 6379)
+    run_service_benchmarks("redis", 6380)
     print(f"{GREEN}Testing KeyDB...{NC}")
-    run_service_benchmarks("keydb", 6380)
+    run_service_benchmarks("keydb", 6379)
     
     # Generate summary report
     print(f"{BLUE}Generating summary report...{NC}")

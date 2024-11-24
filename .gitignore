@@ -1,0 +1,15 @@
+# Python
+*.pyc
+__pycache__/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Installation
+KeyDB/
+
+# Dump files
+*.rdb
+
+
