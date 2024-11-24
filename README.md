@@ -1,88 +1,113 @@
-# Optimized TLS Performance in KeyDB vs. Redis Benchmarking Study
+# Redis vs KeyDB Benchmark Suite
 
-## Abstract
+This project benchmarks the performance of Redis and KeyDB using the `memtier_benchmark` tool. The benchmarks can be run in both TLS and non-TLS modes and support various experimental configurations to analyze server behavior under different conditions.
 
-This project is a comprehensive benchmarking study comparing the performance of Redis and KeyDB under TLS encryption. We evaluate latency, throughput, and real-world impact across various workloads to assess which database offers superior performance in a secure environment.
+---
 
-## Installation
+## Table of Contents
+1. [Installation Instructions](#installation-instructions)
+   - [Install Redis](#install-redis)
+   - [Install KeyDB](#install-keydb)
+   - [Install Memtier Benchmark](#install-memtier-benchmark)
+   - [Generate Certificates for TLS Mode](#generate-certificates-for-tls-mode)
+2. [Running the Benchmarks](#running-the-benchmarks)
+   - [Command Line Arguments](#command-line-arguments)
+   - [Example Commands](#example-commands)
+3. [Automated Setup](#automated-setup)
+4. [Contributing](#contributing)
+5. [License](#license)
 
-### Redis and KeyDB
+---
 
-Install Redis and KeyDB using Homebrew:
+## Installation Instructions
 
+### Install Redis
 ```bash
-brew install redis
-brew install keydb
+sudo apt-get update
+sudo apt-get install redis -y
 ```
 
-### memtier_benchmark
+### Install KeyDB
+```bash
+sudo apt update
+sudo apt install build-essential tcl cmake git -y
 
-Clone the repository and build from source:
+git clone https://github.com/Snapchat/KeyDB.git
+cd KeyDB
 
+make -j$(nproc)
+sudo make install
+```
+
+### Install Memtier Benchmark
 ```bash
 git clone https://github.com/RedisLabs/memtier_benchmark.git
 cd memtier_benchmark
+sudo apt-get install build-essential autoconf automake libssl-dev -y
 autoreconf -ivf
 ./configure
 make
 sudo make install
 ```
 
-### Python Dependencies
-
-Install required Python packages:
-
+### Generate Certificates for TLS Mode
+To enable TLS mode, certificates need to be generated. Use the following commands to create self-signed certificates:
 ```bash
-pip install matplotlib
+cd KeyDB
+./KeyDB/utils/gen-test-certs.sh
 ```
 
-## Usage
+This places the certificates in the `KeyDB/tests/tls` folder in the root of the project.
 
-### Running Benchmarks
+---
 
-Navigate to the project directory and execute:
+## Running the Benchmarks
 
-```bash
-./run_benchmarks.sh
-```
+The main script `main.py` benchmarks Redis and KeyDB using `memtier_benchmark`. It supports both TLS and non-TLS modes and can be configured for various experimental conditions.
 
-This script will:
+### Command Line Arguments
+- `--tls`: Enables TLS mode for the benchmark.
+- `--cert-dir <path>`: Path to the directory containing TLS certificates (default: `./certs`).
+- `--max-threads <int>`: Number of threads for the servers and memtier (default: 4).
+- `--clients <int>`: Number of clients for the benchmark (default: 50).
+- `--test-time <int>`: Duration of the test in seconds (default: 30).
+- `--workload <type>`: Specifies the workload:
+  - `balanced` (default): Equal ratio of GET and SET operations.
+  - `write-heavy`: More SET operations.
+  - `read-heavy`: More GET operations.
 
-1. Create a results directory with a timestamp.
-2. Start Redis and KeyDB servers.
-3. Run predefined benchmark scenarios.
-4. Generate a summary report.
+### Example Commands
+1. **Non-TLS Mode**:
+   ```bash
+   python3 main.py --max-threads 4 --clients 50
+   ```
 
-### Generating Plots
+2. **TLS Mode**:
+   ```bash
+   python3 main.py --tls --cert-dir ./certs --max-threads 4 --clients 50
+   ```
 
-To visualize the results, run:
+3. **Custom Workload**:
+   ```bash
+   python3 main.py --workload write-heavy --test-time 60
+   ```
 
-```bash
-python plot.py <results_directory>
-```
+4. **Stress Testing**:
+   ```bash
+   python3 main.py --clients 500 --test-time 120
+   ```
 
-Replace `<results_directory>` with the path to your benchmark results.
+---
 
-## Benchmark Scenarios
+## Contributing
 
-- **Balanced**: Equal read and write operations.
-- **Write-Heavy**: Three times more writes than reads.
-- **Read-Heavy**: Three times more reads than writes.
-- **Rate-Limited**: Limited to 10,000 operations per second.
+We welcome contributions to improve the benchmarking suite. Feel free to open issues or submit pull requests.
 
-## Results Interpretation
-
-- **Ops/sec**: Measures the throughput of the database.
-- **Latency Percentiles**: Indicates the response time distribution.
-
-Refer to the generated plots and `summary.txt` in the results directory for detailed insights.
-
-## Team Members
-
-- Hirenkumar Parmar (2020CS50435)
-- Ashish Choudhary (2020CS50642)
-- Si Siddhanth Raja (2020CS50443)
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+```
+
+---
