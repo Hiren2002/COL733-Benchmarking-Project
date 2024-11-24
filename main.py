@@ -29,29 +29,36 @@ args = parser.parse_args()
 
 # TLS validation
 if args.tls:
-    cert_files = ["redis.crt", "redis.key", "ca.crt"]
+    cert_files = ["keydb.crt", "keydb.key", "ca.crt"]
     for file in cert_files:
         if not os.path.exists(os.path.join(args.cert_dir, file)):
             raise FileNotFoundError(f"Missing TLS certificate: {file}")
 
 # Server startup commands
-REDIS_TLS_CMD = f"redis-server --tls-port {REDIS_PORT} --port 0 --tls-cert-file {args.cert_dir}/redis.crt --tls-key-file {args.cert_dir}/redis.key --tls-ca-cert-file {args.cert_dir}/ca.crt --protected-mode no --io-threads {args.max_threads}"
-KEYDB_TLS_CMD = f"keydb-server --tls-port {KEYDB_PORT} --port 0 --tls-cert-file {args.cert_dir}/redis.crt --tls-key-file {args.cert_dir}/redis.key --tls-ca-cert-file {args.cert_dir}/ca.crt --server-threads {args.max_threads} --server-thread-affinity true --protected-mode no"
+REDIS_TLS_CMD = f"redis-server --tls-port {REDIS_PORT} --port 0 --tls-cert-file {args.cert_dir}/keydb.crt --tls-key-file {args.cert_dir}/keydb.key --tls-ca-cert-file {args.cert_dir}/ca.crt --protected-mode no --io-threads {args.max_threads}"
+KEYDB_TLS_CMD = f"keydb-server --tls-port {KEYDB_PORT} --port 0 --tls-cert-file {args.cert_dir}/keydb.crt --tls-key-file {args.cert_dir}/keydb.key --tls-ca-cert-file {args.cert_dir}/ca.crt --server-threads {args.max_threads} --server-thread-affinity true --protected-mode no"
 REDIS_CMD = f"redis-server --port {REDIS_PORT} --protected-mode no --io-threads {args.max_threads}"
 KEYDB_CMD = f"keydb-server --port {KEYDB_PORT} --server-threads {args.max_threads} --server-thread-affinity true --protected-mode no"
 
 # Start server
 def start_server(cmd, name):
-    print(f"{GREEN}Starting {name}...{NC}")
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    time.sleep(5)  # Allow time for the server to initialize
-    return process
+    try:
+        print(f"{GREEN}Starting {name}...{NC}")
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(5)  # Allow time for the server to initialize
+        return process
+    except Exception as e:
+        print(f"Error starting {name}: {e}")
+        return None
 
 # Stop server
 def stop_server(process, name):
-    print(f"{BLUE}Stopping {name}...{NC}")
-    process.terminate()
-    process.wait()
+    try:
+        print(f"{BLUE}Stopping {name}...{NC}")
+        process.terminate()
+        process.wait()
+    except Exception as e:
+        print(f"Error stopping {name}: {e}")
 
 # Run memtier benchmark
 def run_benchmark(name, port, tls, threads):
@@ -69,8 +76,8 @@ def run_benchmark(name, port, tls, threads):
     if tls:
         cmd.extend([
             "--tls",
-            "--cert", os.path.join(args.cert_dir, "redis.crt"),
-            "--key", os.path.join(args.cert_dir, "redis.key"),
+            "--cert", os.path.join(args.cert_dir, "keydb.crt"),
+            "--key", os.path.join(args.cert_dir, "keydb.key"),
             "--cacert", os.path.join(args.cert_dir, "ca.crt")
         ])
     print(f"{BLUE}Running benchmark for {name}...{NC}")
@@ -97,32 +104,33 @@ def plot_results():
 
     # Plot throughput comparison
     plt.figure(figsize=(12, 6))
-    plt.subplot(2, 1, 1)
     plt.bar(throughput.keys(), throughput.values(), color=["blue", "orange"])
     plt.title("Throughput Comparison (Ops/sec)")
     plt.ylabel("Ops/sec")
     plt.xlabel("Server")
     plt.grid(axis='y', linestyle="--", alpha=0.7)
 
+    # Save and display throughput plot
+    throughput_plot = os.path.join(RESULTS_DIR, "throughput_comparison.png")
+    plt.savefig(throughput_plot)
+    print(f"Throughput plot saved: {throughput_plot}")
+    plt.show()
+
     # Plot latency comparison
-    plt.subplot(2, 1, 2)
+    plt.figure(figsize=(12, 6))
     x_positions = list(avg_latency.keys())
     plt.bar(x_positions, avg_latency.values(), label="Avg Latency", color=["blue", "orange"], alpha=0.8)
-    if max_latency:
-        plt.bar(x_positions, max_latency.values(), label="Max Latency", color=["lightblue", "peachpuff"], alpha=0.6)
+    plt.bar(x_positions, max_latency.values(), label="Max Latency", color=["lightblue", "peachpuff"], alpha=0.6)
     plt.title("Latency Comparison")
     plt.ylabel("Latency (ms)")
     plt.xlabel("Server")
     plt.legend()
     plt.grid(axis='y', linestyle="--", alpha=0.7)
 
-    # Save and display plots
-    plt.tight_layout()
-    throughput_plot = os.path.join(RESULTS_DIR, "throughput_comparison.png")
+    # Save and display latency plot
     latency_plot = os.path.join(RESULTS_DIR, "latency_comparison.png")
-    plt.savefig(throughput_plot)
     plt.savefig(latency_plot)
-    print(f"Plots saved: {throughput_plot}, {latency_plot}")
+    print(f"Latency plot saved: {latency_plot}")
     plt.show()
     
 
