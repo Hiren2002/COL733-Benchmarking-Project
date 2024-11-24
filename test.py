@@ -14,7 +14,7 @@ NC = '\033[0m'
 
 # Default ports
 REDIS_PORT = 6379
-KEYDB_PORT = 6380
+KEYDB_PORT = 6389
 
 # Results directory
 RESULTS_DIR = "benchmark_results_{}".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -76,29 +76,55 @@ def run_benchmark(name, port, tls, threads):
     print(f"{BLUE}Running benchmark for {name}...{NC}")
     print(f"{GREEN}Command: {' '.join(cmd)}{NC}")
     subprocess.run(cmd)
-
-# Plot results
+    
 def plot_results():
+    # Initialize dictionaries for throughput and latency
     throughput = {}
-    latency = {}
+    avg_latency = {}
+    max_latency = {}
+
+    # Read each JSON file in the results directory
     for json_file in glob.glob(os.path.join(RESULTS_DIR, "*.json")):
         with open(json_file) as f:
             data = json.load(f)
-            totals = data["Totals"][0]
-            name = os.path.basename(json_file).split(".")[0]
+            totals = data["ALL STATS"]["Totals"]
+
+            # Extract metrics
+            name = os.path.basename(json_file).split(".")[0]  # Extract Redis/KeyDB from filename
             throughput[name] = totals["Ops/sec"]
-            latency[name] = totals["Latency"]["Avg Latency"]
-    # Plot
-    plt.figure(figsize=(10, 5))
+            avg_latency[name] = totals["Average Latency"]
+            max_latency[name] = totals["Max Latency"]
+
+    # Plot throughput comparison
+    plt.figure(figsize=(12, 6))
+    plt.subplot(2, 1, 1)
     plt.bar(throughput.keys(), throughput.values(), color=["blue", "orange"])
-    plt.title("Ops/sec Comparison")
+    plt.title("Throughput Comparison (Ops/sec)")
     plt.ylabel("Ops/sec")
-    plt.savefig(os.path.join(RESULTS_DIR, "throughput.png"))
-    plt.figure(figsize=(10, 5))
-    plt.bar(latency.keys(), latency.values(), color=["blue", "orange"])
+    plt.xlabel("Server")
+    plt.grid(axis='y', linestyle="--", alpha=0.7)
+
+    # Plot latency comparison
+    plt.subplot(2, 1, 2)
+    x_positions = list(avg_latency.keys())
+    plt.bar(x_positions, avg_latency.values(), label="Avg Latency", color=["blue", "orange"], alpha=0.8)
+    if max_latency:
+        plt.bar(x_positions, max_latency.values(), label="Max Latency", color=["lightblue", "peachpuff"], alpha=0.6)
     plt.title("Latency Comparison")
-    plt.ylabel("Avg Latency (ms)")
-    plt.savefig(os.path.join(RESULTS_DIR, "latency.png"))
+    plt.ylabel("Latency (ms)")
+    plt.xlabel("Server")
+    plt.legend()
+    plt.grid(axis='y', linestyle="--", alpha=0.7)
+
+    # Save and display plots
+    plt.tight_layout()
+    throughput_plot = os.path.join(RESULTS_DIR, "throughput_comparison.png")
+    latency_plot = os.path.join(RESULTS_DIR, "latency_comparison.png")
+    plt.savefig(throughput_plot)
+    plt.savefig(latency_plot)
+    print(f"Plots saved: {throughput_plot}, {latency_plot}")
+    plt.show()
+    
 
 # Main execution
 if __name__ == "__main__":
