@@ -12,4 +12,6 @@ KeyDB/
 # Dump files
 *.rdb
 
+# Results
+benchmark_results*
 
