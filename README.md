@@ -12,6 +12,7 @@ This project benchmarks the performance of Redis and KeyDB using the `memtier_be
     - [Install KeyDB](#install-keydb)
     - [Install Memtier Benchmark](#install-memtier-benchmark)
     - [Generate Certificates for TLS Mode](#generate-certificates-for-tls-mode)
+    - [Using the Makefile](#using-the-makefile)
   - [Running the Benchmarks](#running-the-benchmarks)
     - [Command Line Arguments](#command-line-arguments)
     - [Example Commands](#example-commands)
@@ -58,6 +59,42 @@ cd KeyDB
 ```
 
 This places the certificates in the `KeyDB/tests/tls` folder in the root of the project.
+
+---
+
+### Using the Makefile
+
+To simplify the setup and benchmarking process, a `Makefile` is provided. The following commands are available:
+
+1. **Install All Dependencies**:
+   Run this to install Redis, KeyDB, Memtier Benchmark, and generate the required certificates.
+   ```bash
+   make all
+   ```
+
+2. **Run Benchmarks**:
+   - Non-TLS mode:
+     ```bash
+     make benchmarks
+     ```
+   - TLS mode:
+     ```bash
+     make tls-benchmarks
+     ```
+
+   You can customize the number of threads, clients, test duration, and workload by editing the variables in the `Makefile`:
+   ```makefile
+   MAX_THREADS = 4
+   CLIENTS = 50
+   TEST_TIME = 30
+   WORKLOAD = balanced
+   ```
+
+3. **Clean Up**:
+   To remove generated files and clean up the repository:
+   ```bash
+   make clean
+   ```
 
 ---
 
