@@ -5,17 +5,17 @@ This project benchmarks the performance of Redis and KeyDB using the `memtier_be
 ---
 
 ## Table of Contents
-1. [Installation Instructions](#installation-instructions)
-   - [Install Redis](#install-redis)
-   - [Install KeyDB](#install-keydb)
-   - [Install Memtier Benchmark](#install-memtier-benchmark)
-   - [Generate Certificates for TLS Mode](#generate-certificates-for-tls-mode)
-2. [Running the Benchmarks](#running-the-benchmarks)
-   - [Command Line Arguments](#command-line-arguments)
-   - [Example Commands](#example-commands)
-3. [Automated Setup](#automated-setup)
-4. [Contributing](#contributing)
-5. [License](#license)
+- [Redis vs KeyDB Benchmark Suite](#redis-vs-keydb-benchmark-suite)
+  - [Table of Contents](#table-of-contents)
+  - [Installation Instructions](#installation-instructions)
+    - [Install Redis](#install-redis)
+    - [Install KeyDB](#install-keydb)
+    - [Install Memtier Benchmark](#install-memtier-benchmark)
+    - [Generate Certificates for TLS Mode](#generate-certificates-for-tls-mode)
+  - [Running the Benchmarks](#running-the-benchmarks)
+    - [Command Line Arguments](#command-line-arguments)
+    - [Example Commands](#example-commands)
+  - [Contributing](#contributing)
 
 ---
 
@@ -103,11 +103,3 @@ The main script `main.py` benchmarks Redis and KeyDB using `memtier_benchmark`. 
 
 We welcome contributions to improve the benchmarking suite. Feel free to open issues or submit pull requests.
 
----
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-```
-
----
