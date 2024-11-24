@@ -1,50 +1,64 @@
 import os
 import subprocess
 import time
-import datetime
-import argparse
+import psutil
 
 # Text colors
 GREEN = '\033[0;32m'
 BLUE = '\033[0;34m'
+RED = '\033[0;31m'
 NC = '\033[0m'
 
-# Default ports
-REDIS_PORT = 6379
-KEYDB_PORT = 6379
 
-# Parse CLI arguments
-def parse_args():
-    parser = argparse.ArgumentParser(description="Redis vs KeyDB Benchmark Suite")
-    parser.add_argument("--max-threads", type=int, default=4, help="Threads for server and memtier")
-    parser.add_argument("--clients", type=int, nargs='+', default=[50], help="Number of clients for benchmarks (e.g., 10 50 100)")
-    parser.add_argument("--workload", type=str, choices=["balanced", "write-heavy", "read-heavy"], default="balanced", help="Workload ratio (GET:SET)")
-    parser.add_argument("--key-size", type=str, default="32", help="Key size in bytes (e.g., '32', '1024')")
-    parser.add_argument("--test-time", type=int, default=30, help="Duration of each benchmark (seconds)")
-    parser.add_argument("--tls", action="store_true", help="Run benchmarks in TLS mode")
-    parser.add_argument("--cert-dir", type=str, default="./KeyDB/tests/tls", help="Path to TLS certificates")
-    parser.add_argument("--simulate-latency", type=int, default=0, help="Simulate network latency in ms")
-    return parser.parse_args()
-
-# Start server
 def start_server(cmd, name):
+    """Start a server process."""
     print(f"{GREEN}Starting {name}...{NC}")
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(5)  # Allow time for the server to initialize
     return process
 
-# Stop server
-def stop_server(process, name):
+
+def stop_server(process, name, port):
+    """Stop a server process and free its port."""
     try:
         print(f"{BLUE}Stopping {name}...{NC}")
         process.terminate()
-        process.wait()
-    except Exception as e:
-        print(f"Error stopping {name}: {e}")
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        print(f"{BLUE}Force killing {name}...{NC}")
+        process.kill()
 
-# Run memtier benchmark
-def run_benchmark(name, port, tls, threads, clients, ratio, key_size, test_time, cert_dir, simulate_latency, results_dir):
-    output_prefix = os.path.join(results_dir, f"{name}_TLS{tls}_{threads}threads_{clients}clients_{ratio}_{key_size}key_{test_time}s")
+    if is_port_in_use(port):
+        print(f"{BLUE}Port {port} is still in use, attempting cleanup...{NC}")
+        force_kill_port(port)
+        if is_port_in_use(port):
+            raise RuntimeError(f"Failed to free port {port} for {name}.")
+    print(f"{GREEN}{name} stopped successfully and port {port} is free.{NC}")
+
+
+def is_port_in_use(port):
+    """Check if a port is in use."""
+    for conn in psutil.net_connections():
+        if conn.laddr.port == port:
+            return True
+    return False
+
+
+def force_kill_port(port):
+    """Forcefully kill processes using a specific port."""
+    for conn in psutil.net_connections():
+        if conn.laddr.port == port:
+            pid = conn.pid
+            if pid:
+                print(f"{BLUE}Killing process {pid} using port {port}...{NC}")
+                try:
+                    psutil.Process(pid).terminate()
+                except psutil.NoSuchProcess:
+                    print(f"{GREEN}Process {pid} no longer exists.{NC}")
+
+
+def run_benchmark(name, port, tls, threads, clients, ratio, key_size, test_time, cert_dir, output_prefix, simulate_latency=0):
+    """Run a memtier benchmark."""
     cmd = [
         "memtier_benchmark",
         "--port", str(port),
@@ -65,5 +79,5 @@ def run_benchmark(name, port, tls, threads, clients, ratio, key_size, test_time,
         ])
     if simulate_latency > 0:
         cmd.extend(["--latency", str(simulate_latency)])
-    print(f"{BLUE}Running benchmark for {name} with {clients} clients, ratio {ratio}, key size {key_size} bytes...{NC}")
+    print(f"{BLUE}Running benchmark for {name}...{NC}")
     subprocess.run(cmd)
