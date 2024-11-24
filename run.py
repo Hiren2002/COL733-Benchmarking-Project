@@ -38,20 +38,29 @@ if args.tls:
             raise FileNotFoundError(f"TLS certificate file not found: {cert_path}")
 
 # Function to check if service is responding
-def check_service(port, name, tls):
-    try:
-        cmd = ['redis-cli', '-p', str(port), 'ping']
-        if tls:
-            cmd.extend([
-                '--tls',
-                '--cert', os.path.join(args.cert_dir, "client.crt"),
-                '--key', os.path.join(args.cert_dir, "client.key"),
-                '--cacert', os.path.join(args.cert_dir, "ca.crt")
-            ])
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-    except subprocess.CalledProcessError:
-        print(f"{BLUE}Error: {name} on port {port} is not responding{NC}")
-        exit(1)
+def check_service(port, name, tls, service_type):
+    """Check if Redis or KeyDB is running on the specified port."""
+    
+    if service_type == "Redis":
+        try:
+            cmd = ['redis-cli', '-p', str(port), 'ping']
+            if tls:
+                cmd.extend([
+                    '--tls',
+                    '--cert', os.path.join(args.cert_dir, "client.crt"),
+                    '--key', os.path.join(args.cert_dir, "client.key"),
+                    '--cacert', os.path.join(args.cert_dir, "ca.crt")
+                ])
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            print(f"{GREEN}{name} is responding on port {port}{NC}")
+        except subprocess.CalledProcessError as e:
+            if tls:
+                print(f"{BLUE}TLS issue detected: Ensure {name} is configured with proper TLS certificates{NC}")
+            print(f"{BLUE}Error: {name} on port {port} is not responding ({service_type}){NC}")
+            exit(1)
+            
+    elif service_type == "KeyDB":
+        pass
 
 # Function to run a single benchmark scenario
 def run_benchmark_scenario(name, port, scenario, ratio, rate_limit, tls):
@@ -84,9 +93,9 @@ def run_benchmark_scenario(name, port, scenario, ratio, rate_limit, tls):
     time.sleep(5)
 
 # Function to run all benchmark scenarios for a service
-def run_service_benchmarks(name, port, tls):
+def run_service_benchmarks(name, port, tls, service_type):
     print(f"{BLUE}Starting benchmarks for {name} on port {port}{NC}")
-    check_service(port, name, tls)
+    check_service(port, name, tls, service_type)
     scenarios = [
         ("balanced", "1:1", ""),
         ("write_heavy", "3:1", ""),
@@ -124,9 +133,9 @@ def generate_summary_report():
 if __name__ == "__main__":
     print(f"{BLUE}Starting benchmark suite...{NC}")
     print(f"{GREEN}Testing Redis...{NC}")
-    run_service_benchmarks("redis", args.redis_port, args.tls)
+    run_service_benchmarks("redis", args.redis_port, args.tls, "Redis")
     print(f"{GREEN}Testing KeyDB...{NC}")
-    run_service_benchmarks("keydb", args.keydb_port, args.tls)
+    run_service_benchmarks("keydb", args.keydb_port, args.tls, "KeyDB")
     
     # Generate summary report
     print(f"{BLUE}Generating summary report...{NC}")
